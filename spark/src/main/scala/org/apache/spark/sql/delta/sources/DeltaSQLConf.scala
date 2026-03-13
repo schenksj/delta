@@ -470,6 +470,16 @@ trait DeltaSQLConfBase extends DeltaSQLConfUtils {
       .booleanConf
       .createWithDefault(true)
 
+  val DELTA_ALWAYS_COLLECT_STATS =
+    buildConf("alwaysCollectStats.enabled")
+      .internal()
+      .doc("When true, row counts are collected from file statistics even when there are no " +
+        "data filters. This is useful for ensuring PreparedDeltaFileIndex always has row count " +
+        "information available. Note: this may have a small performance overhead as it requires " +
+        "summing numRecords from all files.")
+      .booleanConf
+      .createWithDefault(false)
+
   val DELTA_LIMIT_PUSHDOWN_ENABLED =
     buildConf("stats.limitPushdown.enabled")
       .internal()
@@ -2095,6 +2105,35 @@ trait DeltaSQLConfBase extends DeltaSQLConfUtils {
       .internal()
       .booleanConf
       .createWithDefault(true)
+
+  val DELTA_UNIFORM_ICEBERG_DISTRIBUTED_CONVERSION_ENABLED =
+    buildConf("uniform.iceberg.distributed.conversion.enabled")
+      .doc("If enabled, Iceberg manifest generation will be distributed across Spark executors " +
+        "using mapPartitions instead of collecting all files to the driver. " +
+        "This avoids OOM for tables with millions of files.")
+      .internal()
+      .booleanConf
+      .createWithDefault(false)
+
+  val DELTA_UNIFORM_ICEBERG_DISTRIBUTED_CONVERSION_THRESHOLD =
+    buildConf("uniform.iceberg.distributed.conversion.threshold")
+      .doc("Minimum number of files in a snapshot to trigger distributed Iceberg manifest " +
+        "generation when uniform.iceberg.distributed.conversion.enabled is true. " +
+        "Tables below this threshold use the existing driver-only path.")
+      .internal()
+      .longConf
+      .checkValue(_ > 0, "threshold must be positive")
+      .createWithDefault(100000)
+
+  val DELTA_UNIFORM_ICEBERG_BATCHED_DRIVER_TARGET_MANIFEST_SIZE_BYTES =
+    buildConf("uniform.iceberg.batched.driver.target.manifest.size.bytes")
+      .doc("Target manifest file size in bytes for the batched driver conversion path. " +
+        "When the accumulated file sizes exceed this threshold, the current manifest is " +
+        "closed and a new one is started.")
+      .internal()
+      .longConf
+      .checkValue(_ > 0, "target manifest size must be positive")
+      .createWithDefault(8L * 1024 * 1024)
 
   val DELTA_OPTIMIZE_MIN_FILE_SIZE =
     buildConf("optimize.minFileSize")
